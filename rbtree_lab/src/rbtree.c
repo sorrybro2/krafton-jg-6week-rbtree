@@ -178,27 +178,118 @@ static void insert_fixup(rbtree *t, node_t *z){
   t->root->color = RBTREE_BLACK;
 }
 
+// 해당 값의 주소값을 찾는 함수
 node_t *rbtree_find(const rbtree *t, const key_t key) {
-  // TODO: implement find
-  return t->root;
+  // root부터 천천히 내려갈 생각임
+  node_t *x = t->root;
+
+  // nil 만날 때까지 돎
+  while(x != t->nil){
+    // 만약에 키값 같으면 찾은거니까 return x
+    if(key == x->key) { return x; }
+    // 이진 탐색
+    x = (key < x->key) ? x->left : x->right;
+  }
+
+  //없으면 NULL
+  return NULL;
 }
 
 node_t *rbtree_min(const rbtree *t) {
-  // TODO: implement find
-  return t->root;
+
+  if(t->root == t->nil) return NULL;
+
+  node_t *x = t->root;
+  while(x->left != t->nil){
+    x = x->left;
+  }
+  return x;
 }
 
 node_t *rbtree_max(const rbtree *t) {
-  // TODO: implement find
-  return t->root;
+  
+  if(t->root == t->nil) return NULL;
+
+  node_t *x = t->root;
+  while(x->right != t->nil){
+    x = x->right;
+  }
+  return x;
 }
 
-int rbtree_erase(rbtree *t, node_t *p) {
-  // TODO: implement erase
+// u : 삭제하려고 하는 노드, v : 붙이는 노드
+static void rb_transplant(rbtree *t, node_t *u, node_t *v){
+  if (u->parent == t->nil){//u가 root일 때
+    t->root = v;
+  }else if (u = u->parent->left){ // v가 u의 왼쪽 자식일 때
+    u->parent->left = v;
+  }else{ // v가 u의 오른쪽 자식일 때
+    u->parent->right = v;
+  }
+  v->parent = u->parent; // v가 nil일 때
+}
+
+static node_t *successor(rbtree *t, node_t *x){
+  while (x->left != t->nil){
+    x = x->left;
+  }
+  return x;
+}
+
+static void delete_fixup(rbtree *t, node_t *z){
+  
+}
+
+int rbtree_erase(rbtree *t, node_t *z) {
+
+  // y = 실제로 트리에서 빠져나가는 노드 (자식 0/1개 : z 자기자신, 자식 2개 : z의 successor)
+  node_t *y = z;
+  color_t y_origin_color = y->color;
+
+  // x : y가 빠진 자리를 채우는 노드
+  node_t *x;
+
+  // 자식 0/1개일 때
+  if(y->left == t->nil){ //오른쪽 자식만 있을 경우
+    x = z->right;
+    rb_transplant(t, z, z->right);
+  } else if (y->right = t->nil) { // 왼쪽 자식만 있을 경우
+    x = z->left;
+    rb_transplant(t, z, z->left);
+  } else { // 자식 2개일 경우
+    y = successor(t, z->right); // 후계자
+    y_origin_color = y->color;
+    x = y->right; // y 자리에 가지고 와야하므로
+    if (y->parent == z){ // 만약에 지우는 노드 바로 자식에 후계자(successor)가 있다면
+      x->parent = y;
+    } else {
+      //y를 자기 자리에서 때어내고 그 자리를 y->right로 메움
+      rb_transplant(t, y, y->right);
+
+      // z의 오른쪽 서브트리를 y에 붙임
+      y->right = z->right;
+      y->right->parent = y;
+    }
+
+    // z 자리에 y를 올리고, z의 왼쪽 서브트리를 y에 붙임
+    rb_transplant(t, z, y);
+    y->left = z->left;
+    y->left->parent = y;
+    // y는 z의 색을 승계 (실제로 삭제된 색은 y_original_color)
+    y->color = z->color;
+  }
+
+    // 삭제된 색이 검정이면 균형 복원
+  if (y_origin_color == RBTREE_BLACK) {
+    delete_fixup(t, x);
+  }
+
+  free(z);
+  return 0;
+
+}
+
+int rbtree_to_array(const rbtree *t, key_t *arr, const size_t n) {
+  // TODO: implement to_array
   return 0;
 }
-
-// int rbtree_to_array(const rbtree *t, key_t *arr, const size_t n) {
-//   // TODO: implement to_array
-//   return 0;
-//}
