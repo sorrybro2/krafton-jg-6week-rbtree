@@ -138,7 +138,7 @@ static void insert_fixup(rbtree *t, node_t *z){
         z->parent->color = RBTREE_BLACK;
         z->parent->parent->color = RBTREE_RED;
         y->color = RBTREE_BLACK;
-        z = z->parent->parent;
+        z = z->parent->parent; //while 더 돌기 위해서
       } else { // 삼촌이 검은색인 경우
 
         // case 2 : red가 꺾여서 삽입됐을 때
@@ -236,10 +236,6 @@ static node_t *successor(rbtree *t, node_t *x){
   return x;
 }
 
-static void delete_fixup(rbtree *t, node_t *z){
-  
-}
-
 int rbtree_erase(rbtree *t, node_t *z) {
 
   // y = 실제로 트리에서 빠져나가는 노드 (자식 0/1개 : z 자기자신, 자식 2개 : z의 successor)
@@ -281,12 +277,80 @@ int rbtree_erase(rbtree *t, node_t *z) {
 
     // 삭제된 색이 검정이면 균형 복원
   if (y_origin_color == RBTREE_BLACK) {
-    delete_fixup(t, x);
+    delete_fixup(t, x); 
   }
 
   free(z);
   return 0;
 
+}
+// case 1만 부모가 검은색 인 이유 -> case 1 만 형제가 red이기 때문에 다음 노드인 부모는 red가 올 수 없음
+static void delete_fixup(rbtree *t, node_t *x) { // x = 삭제된 노드가 차지하던 자리로 올라온 노드 = double black
+  while(x != t->root && x->color == RBTREE_BLACK){ // x doubly black인 부분이 뿌리이거나 red로 되는 순간 끝
+    if(x==x->parent->left){ // 부모가 오른쪽
+      node_t *bro = x->parent->right; // 형제 생성
+
+      // case 1 형제가 빨강일때
+      if (bro->color == RBTREE_RED){ 
+        // 회전하려면 형제와 부모 색깔을 바꿔야함
+        bro->color = RBTREE_BLACK;
+        x->parent->color = RBTREE_RED;
+        left_rotate(t, x->parent); // 그리고 회전
+        bro = x->parent->right; // 회전 후 x의 위치도 바꼈으므로 bro의 위치도 갱신
+      }
+
+      // case 2 부터는 형제가 다 검은색임!
+      // case 2 형제가 검정, 형제 자식도 검정 -> 싹다 검정
+      if(bro->left->color == RBTREE_BLACK && bro->right->color == RBTREE_BLACK){
+        // x와 형제의 검은색을 부모에게 줘버려
+        bro->color = RBTREE_RED; // 그러면 형제는 red
+        x = x->parent; // 부모가 x의 검정을 받으면서 자연스럽게 x는 부모가 된다.
+      }else{
+        // case 3 형제 검정, 형제 왼쪽 자식 red
+        if(bro->right->color == RBTREE_BLACK){ // 오른 자식 
+          // bro 기준으로 회전하기 위해 색깔 바꿈
+          bro->color = RBTREE_RED; // bro 색깔을 red로
+          bro->left->color = RBTREE_BLACK; // 회전 방향의 반대 방향 자식 색깔을 black
+          right_rotate(t, bro); // 형제 기준 오른쪽 회전
+          bro = x->parent->right; // 회전하고 형제 최신화
+        }
+        // case 4 형제 검정, 형제의 오른쪽 자식 red
+        bro->color = x->parent->color; // 형제의 색깔을 x의 부모의 색으로 바꿈
+        x->parent->color = RBTREE_BLACK;
+        bro->right->color = RBTREE_BLACK;
+      }
+    }else{
+      // 위의 대칭
+      node_t *w = x->parent->left;  // 형제
+      // Case 1
+      if (w->color == RBTREE_RED) {
+        w->color = RBTREE_BLACK;
+        x->parent->color = RBTREE_RED;
+        right_rotate(t, x->parent);
+        w = x->parent->left;
+      }
+      // Case 2
+      if (w->right->color == RBTREE_BLACK && w->left->color == RBTREE_BLACK) {
+        w->color = RBTREE_RED;
+        x = x->parent;
+      } else {
+        // Case 3
+        if (w->left->color == RBTREE_BLACK) {
+          w->right->color = RBTREE_BLACK;
+          w->color = RBTREE_RED;
+          left_rotate(t, w);
+          w = x->parent->left;
+        }
+        // Case 4
+        w->color = x->parent->color;
+        x->parent->color = RBTREE_BLACK;
+        w->left->color = RBTREE_BLACK;
+        right_rotate(t, x->parent);
+        x = t->root;
+      }
+    }
+  }
+  x->color = RBTREE_BLACK;
 }
 
 int rbtree_to_array(const rbtree *t, key_t *arr, const size_t n) {
