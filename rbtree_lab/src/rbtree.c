@@ -315,9 +315,13 @@ static void delete_fixup(rbtree *t, node_t *x) { // x = 삭제된 노드가 차�
           bro = x->parent->right; // 회전하고 형제 최신화
         }
         // case 4 형제 검정, 형제의 오른쪽 자식 red
+        // 회전하기 전 색깔 바꿔줘야지
         bro->color = x->parent->color; // 형제의 색깔을 x의 부모의 색으로 바꿈
-        x->parent->color = RBTREE_BLACK;
-        bro->right->color = RBTREE_BLACK;
+        x->parent->color = RBTREE_BLACK; // 부모 색은 형제 색 검은색 받음
+        bro->right->color = RBTREE_BLACK; // 색 옮기는 과정에서 형제의 오른 자식이 검은색이 됨
+        left_rotate(t, x->parent);
+        //다 끝났으므로 종료
+        x = t->root; 
       }
     }else{
       // 위의 대칭
@@ -353,7 +357,17 @@ static void delete_fixup(rbtree *t, node_t *x) { // x = 삭제된 노드가 차�
   x->color = RBTREE_BLACK;
 }
 
+static void inorder_to_array(const rbtree *t, const node_t *x, key_t *arr, size_t n, size_t *idx){
+  if (x == t->nil || *idx >= n) return; // 끝까지 탐색
+
+  // 중위 순회 => 재귀를 통한
+  inorder_to_array(t, x->left, arr, n, idx); 
+  if(*idx < n) arr[(*idx)++] == x->key; // 방문 arr[i]에 키넣기
+  inorder_to_arry(t, x->right, arr, n, idx);
+}
+
 int rbtree_to_array(const rbtree *t, key_t *arr, const size_t n) {
-  // TODO: implement to_array
+  size_t idx = 0; // idx 0부터 시작
+  inorder_to_array(t, t->root, arr, n, idx);
   return 0;
 }
