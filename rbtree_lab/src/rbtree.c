@@ -1,3 +1,5 @@
+// 오늘은 cs 공부!
+
 #include "rbtree.h"
 #include <stdlib.h>
 
